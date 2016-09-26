@@ -18,12 +18,26 @@ class MasterViewController: UITableViewController {
         super.viewDidLoad()
         // Do any additional setup after loading the view, typically from a nib.
         self.navigationItem.leftBarButtonItem = self.editButtonItem()
-
+        
         let addButton = UIBarButtonItem(barButtonSystemItem: .Add, target: self, action: "insertNewObject:")
         self.navigationItem.rightBarButtonItem = addButton
         if let split = self.splitViewController {
             let controllers = split.viewControllers
             self.detailViewController = (controllers[controllers.count-1] as! UINavigationController).topViewController as? DetailViewController
+        }
+        
+        WeatherAPIService().getWeatherModel("San Francisco", callback: getWeatherCallback)
+        WeatherAPIService().getWeatherModel("New York", callback: getWeatherCallback)
+        WeatherAPIService().getWeatherModel("Salt Lake", callback: getWeatherCallback)
+    }
+    
+    private func getWeatherCallback(weatherModel:CityWeather) {
+        //I'm very sure dispatching to the main thread here is not the correct way to do this. Need
+        //to do research into the standard pattern.
+        dispatch_async(dispatch_get_main_queue()) {
+            self.objects.insert(weatherModel, atIndex: 0)
+            let indexPath = NSIndexPath(forRow: 0, inSection: 0)
+            self.tableView.insertRowsAtIndexPaths([indexPath], withRowAnimation: .Automatic)
         }
     }
 
@@ -38,9 +52,19 @@ class MasterViewController: UITableViewController {
     }
 
     func insertNewObject(sender: AnyObject) {
-        objects.insert(NSDate(), atIndex: 0)
-        let indexPath = NSIndexPath(forRow: 0, inSection: 0)
-        self.tableView.insertRowsAtIndexPaths([indexPath], withRowAnimation: .Automatic)
+        let alert = UIAlertController(title: "Add", message: "Enter a city name", preferredStyle: .Alert)
+        
+        alert.addTextFieldWithConfigurationHandler({ (textField) -> Void in
+            textField.text = ""
+        })
+        
+        alert.addAction(UIAlertAction(title: "OK", style: .Default, handler: { (action) -> Void in
+            let textField = alert.textFields![0] as UITextField
+            WeatherAPIService().getWeatherModel(textField.text!, callback: self.getWeatherCallback)
+            
+        }))
+        
+        self.presentViewController(alert, animated: true, completion: nil)
     }
 
     // MARK: - Segues
@@ -48,7 +72,7 @@ class MasterViewController: UITableViewController {
     override func prepareForSegue(segue: UIStoryboardSegue, sender: AnyObject?) {
         if segue.identifier == "showDetail" {
             if let indexPath = self.tableView.indexPathForSelectedRow {
-                let object = objects[indexPath.row] as! NSDate
+                let object = objects[indexPath.row] as! CityWeather
                 let controller = (segue.destinationViewController as! UINavigationController).topViewController as! DetailViewController
                 controller.detailItem = object
                 controller.navigationItem.leftBarButtonItem = self.splitViewController?.displayModeButtonItem()
@@ -69,9 +93,17 @@ class MasterViewController: UITableViewController {
 
     override func tableView(tableView: UITableView, cellForRowAtIndexPath indexPath: NSIndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCellWithIdentifier("Cell", forIndexPath: indexPath)
-
-        let object = objects[indexPath.row] as! NSDate
-        cell.textLabel!.text = object.description
+        
+        let object = objects[indexPath.row] as! CityWeather
+        
+        if(object.Error == nil) {
+            cell.textLabel!.text = object.CityName + " " + object.CurrentTemperature
+            cell.imageView?.image = object.Image!
+        }
+        else {
+            cell.textLabel!.text = object.Error!
+        }
+        
         return cell
     }
 

@@ -11,9 +11,15 @@ import UIKit
 class DetailViewController: UIViewController {
 
     @IBOutlet weak var detailDescriptionLabel: UILabel!
+    @IBOutlet weak var cityNameLabel: UILabel!
+    @IBOutlet weak var weatherIcon: UIImageView!
+    @IBOutlet weak var currentTemperature: UILabel!
+    @IBOutlet weak var highTemperature: UILabel!
+    @IBOutlet weak var lowTemperature: UILabel!
+    @IBOutlet weak var precipitationChance: UILabel!
+    
 
-
-    var detailItem: AnyObject? {
+    var detailItem: CityWeather? {
         didSet {
             // Update the view.
             self.configureView()
@@ -24,7 +30,22 @@ class DetailViewController: UIViewController {
         // Update the user interface for the detail item.
         if let detail = self.detailItem {
             if let label = self.detailDescriptionLabel {
-                label.text = detail.description
+                if(detailItem != nil && detail.Error != nil){
+                    label.text = detail.Error!
+                    return
+                }
+                else {
+                    label.text = ""
+                }
+            }
+            
+            if(cityNameLabel != nil) {
+                cityNameLabel.text = detail.CityName
+                weatherIcon.image = detail.Image
+                currentTemperature.text = "Current Temperature: " + detail.CurrentTemperature
+                highTemperature.text = "Today's High: " + detail.HighTemperature
+                lowTemperature.text = "Today's Low: " + detail.LowTemperature
+                precipitationChance.text = "Chance of Precipitation: " + detail.PrecipitationChance
             }
         }
     }
